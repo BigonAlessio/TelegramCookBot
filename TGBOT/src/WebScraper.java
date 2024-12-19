@@ -11,7 +11,7 @@ public class WebScraper {
     private static String CATEGORY_url;
 
     public WebScraper(){
-        BASE_url = "www.giallozafferano.it";
+        BASE_url = "https://www.giallozafferano.it";
         CATEGORY_url = "/ricette-cat/page";
     }
 
@@ -19,39 +19,30 @@ public class WebScraper {
         List<Recipe> allRecipes = new ArrayList<>();
         int page = 1;
         int id = 1;
-        String pageurl;
+        String pageurl = BASE_url + "/ricette-cat/";
 
-        while(true){
-            if(page == 1)
-                pageurl = BASE_url + "/ricette-cat/";
-            else
-                pageurl = BASE_url + CATEGORY_url + page + "/";
+        Document doc = Jsoup.connect(pageurl).get();
+        Elements recipelinks = doc.select(".gz-title a");
 
-            List<Recipe> recipes = scrapeFromPage(pageurl, id);
-            if(recipes.isEmpty())
-                break;
-
-            allRecipes.addAll(recipes);
-            id += recipes.size();
-            page++;
+        for (Element link : recipelinks){
+            String url = BASE_url + link.attr("href");
+            Recipe recipe = scrapeRecipeDetails(url);
+            if(recipe != null)
+                allRecipes.add(recipe);
         }
 
         return allRecipes;
     }
 
-    public List<Recipe> scrapeFromPage(String url, int sid) throws IOException {
-        List<Recipe> result = new ArrayList<>();
+    private Recipe scrapeRecipeDetails(String url) throws IOException {
         Document doc = Jsoup.connect(url).get();
 
-        Elements links = doc.select(".gz-title a");
+        String name = doc.select("gz.title-recipe").text();
+        if (name.isEmpty())
+            name = "Titolo non disponibile";
 
-        int id = sid;
-        for(Element link : links){
-            String recipeurl = BASE_url + link.attr("href");
-            result.add(recipeDetails(id++, recipeurl));
-        }
-
-        return result;
+        Elements elements = doc.select("gz-breadcrumb span");
+        String category = elements.isEmpty() ? "Categoria non disponibile" :
     }
 
     private static Recipe recipeDetails(int id, String url) throws IOException{
